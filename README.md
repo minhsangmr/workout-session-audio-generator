@@ -10,6 +10,7 @@ Generate MP3 workout audio from a CSV workout plan using TTS (Text-to-Speech).
 - **Simple Export (MVP 3)** — Concatenates voice segments into a single MP3 with configurable gaps.
 - **Timeline Export (MVP 4)** — Full workout timeline with voice cues and real work/rest silence periods.
 - **Beep Cues (MVP 5)** — Optional beep tones during work/rest silence periods (configurable offsets).
+- **Background Music (MVP 6)** — Mix background music into timeline audio with configurable volume levels.
 
 ## Quick Start
 
@@ -25,6 +26,9 @@ uv run python cli/generate.py --input data/sample_inputs/sample_workout.csv --tt
 
 # Timeline mode with beep cues (MVP 5)
 uv run python cli/generate.py --input data/sample_inputs/sample_workout.csv --tts-engine gtts --timeline-mode --beep
+
+# Timeline mode with background music (MVP 6)
+uv run python cli/generate.py --input data/sample_inputs/sample_workout.csv --tts-engine gtts --output storage/outputs/workout_music.mp3 --timeline-mode --beep --background-music data/music/background.mp3
 
 # Custom output / gap
 uv run python cli/generate.py --input data/sample_inputs/sample_workout.csv --tts-engine gtts --output storage/outputs/my_workout.mp3 --gap-ms 800
@@ -46,6 +50,11 @@ Options:
   --beep                Enable beep cues during work/rest silence (MVP 5, requires --timeline-mode)
   --work-beep-offsets   Comma-separated offsets from end for work beeps (default: 5,2)
   --rest-beep-offsets   Comma-separated offsets from end for rest beeps (default: 5,2)
+  --background-music PATH  Path to background music MP3 (requires --timeline-mode)
+  --voice-music-volume-db DB  Music volume reduction during voice (default: -24)
+  --active-music-volume-db DB  Music volume reduction during work/rest (default: -12)
+  --fade-in-ms MS          Fade-in duration (default: 1000)
+  --fade-out-ms MS         Fade-out duration (default: 1500)
 ```
 
 ## Timeline Mode (MVP 4)
@@ -75,6 +84,28 @@ You can customize these offsets:
 uv run python cli/generate.py --input data/sample_inputs/sample_workout.csv --tts-engine gtts --timeline-mode --beep --work-beep-offsets "10,3" --rest-beep-offsets "5"
 ```
 
+## Background Music (MVP 6)
+
+When `--background-music` is used with `--timeline-mode`, background music is mixed into the workout audio:
+
+- **Voice segments**: Music plays at a quieter volume (default: -24 dB) with voice overlaid on top.
+- **Work/rest silence**: Music plays at a louder volume (default: -12 dB).
+- **Beep cues**: If `--beep` is also enabled, beeps are overlaid onto the music during work/rest periods.
+- **Looping**: If the music file is shorter than the workout duration, it loops seamlessly.
+- **Fade in/out**: Fade-in (default: 1000 ms) and fade-out (default: 1500 ms) are applied to the final mix.
+
+### Example
+
+```bash
+uv run python cli/generate.py --input data/sample_inputs/sample_workout.csv --tts-engine gtts --output storage/outputs/workout_music.mp3 --timeline-mode --beep --background-music data/music/background.mp3
+```
+
+### Music file
+
+Place any `.mp3` file at `data/music/background.mp3` (or point `--background-music` to any local MP3 file). The CLI does **not** download music from the internet.
+
+For testing, you can use any short MP3 file on your machine (e.g. a royalty-free loop).
+
 ## Project Structure
 
 ```
@@ -84,6 +115,7 @@ audio_engine/
 ├── tts_generator.py      # gTTS voice generation
 ├── timeline_builder.py   # Workout timeline construction
 ├── beep_builder.py       # Beep tone generation & overlay
+├── music_mixer.py        # Background music loading & looping
 └── exporter.py           # MP3 concatenation & timeline export
 
 cli/

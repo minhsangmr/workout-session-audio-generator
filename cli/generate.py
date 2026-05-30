@@ -134,6 +134,46 @@ def _build_parser() -> argparse.ArgumentParser:
         "for beep cues (default: '5,2'). Only used with --beep.",
     )
 
+    # --- Background music options (MVP 6) ------------------------------------
+    parser.add_argument(
+        "--background-music",
+        type=str,
+        default=None,
+        help="Path to background music MP3 file. Only used with --timeline-mode.",
+    )
+
+    parser.add_argument(
+        "--voice-music-volume-db",
+        type=int,
+        default=-24,
+        help="Volume reduction in dB for background music during voice "
+        "segments (default: -24). Only used with --background-music.",
+    )
+
+    parser.add_argument(
+        "--active-music-volume-db",
+        type=int,
+        default=-12,
+        help="Volume reduction in dB for background music during work/rest "
+        "silence periods (default: -12). Only used with --background-music.",
+    )
+
+    parser.add_argument(
+        "--fade-in-ms",
+        type=int,
+        default=1000,
+        help="Fade-in duration in milliseconds for final mix "
+        "(default: 1000). Only used with --background-music.",
+    )
+
+    parser.add_argument(
+        "--fade-out-ms",
+        type=int,
+        default=1500,
+        help="Fade-out duration in milliseconds for final mix "
+        "(default: 1500). Only used with --background-music.",
+    )
+
     return parser
 
 
@@ -167,6 +207,15 @@ def main() -> None:
     temp_dir = Path(args.temp_dir)
     output_path = Path(args.output)
 
+    # --- Background music warning --------------------------------------------
+    if args.background_music and not args.timeline_mode:
+        print(
+            "Warning: --background-music is only supported in --timeline-mode. "
+            "Ignoring background music.",
+            file=sys.stderr,
+        )
+        args.background_music = None
+
     # --- Timeline mode (MVP 4 & 5) --------------------------------------------
     if args.timeline_mode:
         # 1. Load CSV
@@ -196,6 +245,13 @@ def main() -> None:
                 f"rest offsets {rest_beep_offsets}s"
             )
 
+        if args.background_music:
+            print(
+                f"Background music enabled: {args.background_music} "
+                f"(voice vol: {args.voice_music_volume_db} dB, "
+                f"active vol: {args.active_music_volume_db} dB)"
+            )
+
         # 3. Export timeline to MP3
         print(f"Generating timeline audio via gTTS to {output_path}...")
         try:
@@ -206,6 +262,11 @@ def main() -> None:
                 enable_beep=args.beep,
                 work_beep_offsets=work_beep_offsets,
                 rest_beep_offsets=rest_beep_offsets,
+                background_music_path=Path(args.background_music) if args.background_music else None,
+                voice_music_volume_db=args.voice_music_volume_db,
+                active_music_volume_db=args.active_music_volume_db,
+                fade_in_ms=args.fade_in_ms,
+                fade_out_ms=args.fade_out_ms,
             )
         except (ValueError, RuntimeError) as exc:
             print(f"Error exporting timeline audio: {exc}", file=sys.stderr)
