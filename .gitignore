@@ -24,7 +24,7 @@ data/generated/*
 *.wav
 
 # But keep folder structure
-!storage/uploads/.gitkeep
+!storage/uploads/.gitkeep   
 !storage/outputs/.gitkeep
 !storage/temp/.gitkeep
 
@@ -41,3 +41,18 @@ build/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Python package/build artifacts
+*.egg-info/
+dist/
+build/
+
+__pycache__/
+*.py[cod]
+.venv/
+.env
+*.mp3
+*.wav
+storage/uploads/*
+storage/outputs/*
+storage/temp/*
