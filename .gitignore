@@ -33,6 +33,7 @@ node_modules/
 .next/
 dist/
 build/
+out/
 
 # Logs
 *.log
