@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+.env
+
+# Mac
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Audio outputs
+storage/uploads/*
+storage/outputs/*
+storage/temp/*
+data/generated/*
+*.mp3
+*.wav
+
+# But keep folder structure
+!storage/uploads/.gitkeep
+!storage/outputs/.gitkeep
+!storage/temp/.gitkeep
+
+# Node / Frontend
+node_modules/
+.next/
+dist/
+build/
+
+# Logs
+*.log
+
+# Test/cache
+.pytest_cache/
+.coverage
+htmlcov/

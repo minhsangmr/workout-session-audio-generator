@@ -1,0 +1,21 @@
+[project]
+name = "workout-session-audio-generator"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "edge-tts>=7.2.8",
+    "fastapi>=0.136.3",
+    "gtts>=2.5.4",
+    "pandas>=3.0.3",
+    "pydub>=0.25.1",
+    "python-multipart>=0.0.29",
+    "uvicorn>=0.48.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "ruff>=0.15.15",
+]
