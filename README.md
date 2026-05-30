@@ -9,6 +9,7 @@ Generate MP3 workout audio from a CSV workout plan using TTS (Text-to-Speech).
 - **TTS Generator** — Generates MP3 voice segments using gTTS (Vietnamese).
 - **Simple Export (MVP 3)** — Concatenates voice segments into a single MP3 with configurable gaps.
 - **Timeline Export (MVP 4)** — Full workout timeline with voice cues and real work/rest silence periods.
+- **Beep Cues (MVP 5)** — Optional beep tones during work/rest silence periods (configurable offsets).
 
 ## Quick Start
 
@@ -21,6 +22,9 @@ uv run python cli/generate.py --input data/sample_inputs/sample_workout.csv --tt
 
 # Timeline mode with work/rest periods (MVP 4)
 uv run python cli/generate.py --input data/sample_inputs/sample_workout.csv --tts-engine gtts --timeline-mode
+
+# Timeline mode with beep cues (MVP 5)
+uv run python cli/generate.py --input data/sample_inputs/sample_workout.csv --tts-engine gtts --timeline-mode --beep
 
 # Custom output / gap
 uv run python cli/generate.py --input data/sample_inputs/sample_workout.csv --tts-engine gtts --output storage/outputs/my_workout.mp3 --gap-ms 800
@@ -39,6 +43,9 @@ Options:
   --gap-ms MS           Silence gap between segments, MVP 3 only (default: 500)
   --temp-dir PATH       Temp directory for voice files (default: storage/temp)
   --timeline-mode       Full timeline with work/rest periods (MVP 4)
+  --beep                Enable beep cues during work/rest silence (MVP 5, requires --timeline-mode)
+  --work-beep-offsets   Comma-separated offsets from end for work beeps (default: 5,2)
+  --rest-beep-offsets   Comma-separated offsets from end for rest beeps (default: 5,2)
 ```
 
 ## Timeline Mode (MVP 4)
@@ -55,6 +62,19 @@ When `--timeline-mode` is enabled, the generator builds a structured workout aud
    - Rest silence (rest_seconds)
 4. Voice completion at the end
 
+## Beep Cues (MVP 5)
+
+When `--beep` is enabled with `--timeline-mode`, the generator overlays short beep tones
+(880 Hz sine wave, 300 ms duration) onto work and rest silence periods.
+
+By default, beeps play at **5 seconds** and **2 seconds** before the end of each silence period.
+You can customize these offsets:
+
+```bash
+# Beeps at 10s and 3s before end of work periods; 5s before end of rest periods
+uv run python cli/generate.py --input data/sample_inputs/sample_workout.csv --tts-engine gtts --timeline-mode --beep --work-beep-offsets "10,3" --rest-beep-offsets "5"
+```
+
 ## Project Structure
 
 ```
@@ -63,6 +83,7 @@ audio_engine/
 ├── script_builder.py     # Vietnamese script generation
 ├── tts_generator.py      # gTTS voice generation
 ├── timeline_builder.py   # Workout timeline construction
+├── beep_builder.py       # Beep tone generation & overlay
 └── exporter.py           # MP3 concatenation & timeline export
 
 cli/

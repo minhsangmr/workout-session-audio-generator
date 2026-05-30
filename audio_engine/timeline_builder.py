@@ -25,11 +25,15 @@ class TimelineItem:
         The text to speak (only for "voice" items).
     duration_seconds : int | None
         Duration in seconds (only for "silence" items).
+    silence_kind : str | None
+        Kind of silence: "work" for work periods, "rest" for rest periods.
+        Only meaningful when type == "silence".
     """
 
     type: str  # "voice" or "silence"
     text: str | None = None
     duration_seconds: int | None = None
+    silence_kind: str | None = None
 
 
 def build_workout_timeline(exercises: list[WorkoutRow]) -> list[TimelineItem]:
@@ -45,9 +49,10 @@ def build_workout_timeline(exercises: list[WorkoutRow]) -> list[TimelineItem]:
          c. For each set (1 to N):
             - Voice: "Chuẩn bị set X của <exercise>"
             - Voice: "Ba, hai, một, bắt đầu."
-            - Silence: work_seconds (user works out)
+            - Silence: work_seconds (user works out), silence_kind="work"
             - Voice: "Nghỉ."
-            - Silence: rest_seconds (user rests) — skip for last set of exercise
+            - Silence: rest_seconds (user rests), silence_kind="rest"
+                       — skip for last set of exercise
       4. After all exercises in a day/session:
          Voice: "Hoàn thành buổi tập!"
 
@@ -131,11 +136,12 @@ def build_workout_timeline(exercises: list[WorkoutRow]) -> list[TimelineItem]:
                 )
             )
 
-            # Work period
+            # Work period (silence_kind="work")
             timeline.append(
                 TimelineItem(
                     type="silence",
                     duration_seconds=row.work_seconds,
+                    silence_kind="work",
                 )
             )
 
@@ -147,12 +153,13 @@ def build_workout_timeline(exercises: list[WorkoutRow]) -> list[TimelineItem]:
                 )
             )
 
-            # Rest silence — skip for last set of the exercise
+            # Rest silence (silence_kind="rest") — skip for last set of the exercise
             if not is_last_set:
                 timeline.append(
                     TimelineItem(
                         type="silence",
                         duration_seconds=row.rest_seconds,
+                        silence_kind="rest",
                     )
                 )
 
@@ -165,11 +172,12 @@ def build_workout_timeline(exercises: list[WorkoutRow]) -> list[TimelineItem]:
                 )
             )
         else:
-            # Rest between exercises
+            # Rest between exercises (silence_kind="rest")
             timeline.append(
                 TimelineItem(
                     type="silence",
                     duration_seconds=row.rest_seconds,
+                    silence_kind="rest",
                 )
             )
 

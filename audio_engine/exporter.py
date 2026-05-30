@@ -10,6 +10,7 @@ from pathlib import Path
 
 from pydub import AudioSegment
 
+from audio_engine.beep_builder import overlay_beeps_on_silence
 from audio_engine.timeline_builder import TimelineItem
 from audio_engine.tts_generator import generate_tts_audio
 
@@ -84,13 +85,17 @@ def export_timeline_to_mp3(
     temp_dir: Path,
     language: str = "vi",
     tts_engine: str = "gtts",
+    enable_beep: bool = False,
+    work_beep_offsets: list[int] | None = None,
+    rest_beep_offsets: list[int] | None = None,
 ) -> Path:
     """
     Export a workout timeline to a single MP3 file.
 
     Iterates through timeline items in order:
       - "voice" items: generate TTS audio and append.
-      - "silence" items: append silent AudioSegment for the specified duration.
+      - "silence" items: append silent AudioSegment for the specified duration,
+        optionally with beep cues overlaid if enable_beep is True.
 
     Temp files are created in temp_dir and cleaned up after export.
 
@@ -106,6 +111,14 @@ def export_timeline_to_mp3(
         Language code for TTS (default: 'vi').
     tts_engine : str, optional
         TTS engine to use (default: 'gtts'). Only 'gtts' is supported in this MVP.
+    enable_beep : bool, optional
+        Whether to overlay beep cues on silence periods (default: False).
+    work_beep_offsets : list[int] | None, optional
+        Offsets from end in seconds for beeps during work periods.
+        Default: [5, 2] (beep at 5s and 2s before end).
+    rest_beep_offsets : list[int] | None, optional
+        Offsets from end in seconds for beeps during rest periods.
+        Default: [5, 2] (beep at 5s and 2s before end).
 
     Returns
     -------
@@ -126,6 +139,12 @@ def export_timeline_to_mp3(
         raise ValueError(
             f"Only gtts is supported in this MVP. Got: {tts_engine}"
         )
+
+    # Default beep offsets
+    if work_beep_offsets is None:
+        work_beep_offsets = [5, 2]
+    if rest_beep_offsets is None:
+        rest_beep_offsets = [5, 2]
 
     # Clean temp dir and recreate
     if temp_dir.exists():
@@ -173,7 +192,24 @@ def export_timeline_to_mp3(
                 continue  # skip silence items with no duration
 
             silence_ms = item.duration_seconds * 1000
-            silence_segment = AudioSegment.silent(duration=silence_ms)
+
+            if enable_beep and item.silence_kind:
+                # Overlay beeps on silence based on silence_kind
+                if item.silence_kind == "work":
+                    silence_segment = overlay_beeps_on_silence(
+                        duration_seconds=item.duration_seconds,
+                        beep_offsets_from_end=work_beep_offsets,
+                    )
+                elif item.silence_kind == "rest":
+                    silence_segment = overlay_beeps_on_silence(
+                        duration_seconds=item.duration_seconds,
+                        beep_offsets_from_end=rest_beep_offsets,
+                    )
+                else:
+                    # Unknown silence_kind, just plain silence
+                    silence_segment = AudioSegment.silent(duration=silence_ms)
+            else:
+                silence_segment = AudioSegment.silent(duration=silence_ms)
 
             if combined is None:
                 combined = silence_segment

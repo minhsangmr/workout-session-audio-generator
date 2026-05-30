@@ -14,6 +14,9 @@ Examples:
 
     # MVP 4: Timeline mode (work/rest periods)
     uv run python cli/generate.py --input data/sample_inputs/sample_workout.csv --tts-engine gtts --output storage/outputs/workout_timeline.mp3 --timeline-mode
+
+    # MVP 5: Timeline mode with beep cues
+    uv run python cli/generate.py --input data/sample_inputs/sample_workout.csv --tts-engine gtts --output storage/outputs/workout_beep.mp3 --timeline-mode --beep
 """
 
 from __future__ import annotations
@@ -33,6 +36,23 @@ from audio_engine.tts_generator import (
     generate_tts_segments,
     split_script_into_segments,
 )
+
+
+def _parse_beep_offsets(value: str) -> list[int]:
+    """Parse a comma-separated string of integers into a list."""
+    parts = value.split(",")
+    offsets: list[int] = []
+    for p in parts:
+        stripped = p.strip()
+        if stripped:
+            try:
+                offsets.append(int(stripped))
+            except ValueError:
+                raise argparse.ArgumentTypeError(
+                    f"Invalid beep offset value: '{stripped}'. "
+                    "Expected comma-separated integers, e.g. '5,2'."
+                )
+    return offsets
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -90,6 +110,30 @@ def _build_parser() -> argparse.ArgumentParser:
         "Builds a full workout timeline with voice and silence items.",
     )
 
+    parser.add_argument(
+        "--beep",
+        action="store_true",
+        help="Enable beep cues during work/rest silence periods "
+        "(only in --timeline-mode). Beeps play at configurable offsets "
+        "before the end of each period (default: 5s and 2s).",
+    )
+
+    parser.add_argument(
+        "--work-beep-offsets",
+        type=str,
+        default="5,2",
+        help="Comma-separated offsets in seconds from end of work periods "
+        "for beep cues (default: '5,2'). Only used with --beep.",
+    )
+
+    parser.add_argument(
+        "--rest-beep-offsets",
+        type=str,
+        default="5,2",
+        help="Comma-separated offsets in seconds from end of rest periods "
+        "for beep cues (default: '5,2'). Only used with --beep.",
+    )
+
     return parser
 
 
@@ -123,7 +167,7 @@ def main() -> None:
     temp_dir = Path(args.temp_dir)
     output_path = Path(args.output)
 
-    # --- Timeline mode (MVP 4) ------------------------------------------------
+    # --- Timeline mode (MVP 4 & 5) --------------------------------------------
     if args.timeline_mode:
         # 1. Load CSV
         try:
@@ -136,11 +180,21 @@ def main() -> None:
         print("Building workout timeline...")
         timeline = build_workout_timeline(rows)
 
+        # Parse beep offsets if --beep is enabled
+        work_beep_offsets = _parse_beep_offsets(args.work_beep_offsets)
+        rest_beep_offsets = _parse_beep_offsets(args.rest_beep_offsets)
+
         print(
             f"Timeline has {len(timeline)} items "
             f"({sum(1 for t in timeline if t.type == 'voice')} voice, "
             f"{sum(1 for t in timeline if t.type == 'silence')} silence)."
         )
+
+        if args.beep:
+            print(
+                f"Beep cues enabled: work offsets {work_beep_offsets}s, "
+                f"rest offsets {rest_beep_offsets}s"
+            )
 
         # 3. Export timeline to MP3
         print(f"Generating timeline audio via gTTS to {output_path}...")
@@ -149,6 +203,9 @@ def main() -> None:
                 timeline=timeline,
                 output_path=output_path,
                 temp_dir=temp_dir,
+                enable_beep=args.beep,
+                work_beep_offsets=work_beep_offsets,
+                rest_beep_offsets=rest_beep_offsets,
             )
         except (ValueError, RuntimeError) as exc:
             print(f"Error exporting timeline audio: {exc}", file=sys.stderr)
